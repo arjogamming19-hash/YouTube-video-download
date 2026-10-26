@@ -1,0 +1,6 @@
+{
+  "name": "TubeBatch",
+  "description": "YouTube video batch downloader with local file storage, queue manager, and media player.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

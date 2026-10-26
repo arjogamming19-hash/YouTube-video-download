@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Batch card shadow / secondary card behind -->
+    <path
+        android:pathData="M32,32h44c3.3,0 6,2.7 6,6v24c0,3.3 -2.7,6 -6,6H32c-3.3,0 -6,-2.7 -6,-6V38c0,-3.3 2.7,-6 6,-6z"
+        android:fillColor="#4DFF2E63" />
+    
+    <!-- Main Video Frame -->
+    <path
+        android:pathData="M30,36h48c3.3,0 6,2.7 6,6v26c0,3.3 -2.7,6 -6,6H30c-3.3,0 -6,-2.7 -6,-6V42c0,-3.3 2.7,-6 6,-6z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="24"
+                android:startY="36"
+                android:endX="84"
+                android:endY="74"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FF0055" />
+                <item android:offset="1.0" android:color="#E11D48" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Play triangle badge -->
+    <path
+        android:pathData="M43,45 L43,59 L54,52 Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- Batch Download Arrow in Foreground -->
+    <path
+        android:pathData="M60,45 L68,45 L68,52 L73,52 L64,62 L55,52 L60,52 Z"
+        android:fillColor="#38BDF8" />
+
+    <!-- Storage Tray / Platform Bar underneath -->
+    <path
+        android:pathData="M33,70 L75,70"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#FFFFFF" />
+</vector>
