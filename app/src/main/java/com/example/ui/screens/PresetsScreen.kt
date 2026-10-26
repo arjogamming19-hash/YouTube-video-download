@@ -44,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +76,7 @@ data class BatchPreset(
 fun PresetsScreen(
   onDownloadPreset: (List<String>) -> Unit
 ) {
+  val context = LocalContext.current
   val scope = rememberCoroutineScope()
   var inspectorUrl by remember { mutableStateOf("") }
   var inspectedTitle by remember { mutableStateOf<String?>(null) }
@@ -238,7 +240,7 @@ fun PresetsScreen(
                   isInspecting = true
                   scope.launch {
                     val info = withContext(Dispatchers.IO) {
-                      YouTubeParser.fetchVideoDetails(OkHttpClient(), inspectorUrl, "VIDEO_MP4")
+                      YouTubeParser.fetchVideoDetails(context, OkHttpClient(), inspectorUrl, "VIDEO_MP4")
                     }
                     inspectedTitle = info.title
                     inspectedChannel = info.channelTitle

@@ -284,7 +284,7 @@ fun StatusPill(status: DownloadStatus, errorMessage: String?) {
     DownloadStatus.DOWNLOADING -> Triple(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary, "Downloading")
     DownloadStatus.PAUSED -> Triple(Color.Gray.copy(alpha = 0.2f), Color.LightGray, "Paused")
     DownloadStatus.COMPLETED -> Triple(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), MaterialTheme.colorScheme.primary, "Completed")
-    DownloadStatus.FAILED -> Triple(ErrorRed.copy(alpha = 0.15f), ErrorRed, errorMessage?.take(24) ?: "Failed")
+    DownloadStatus.FAILED -> Triple(ErrorRed.copy(alpha = 0.15f), ErrorRed, "Failed • Tap ↻")
     DownloadStatus.CANCELED -> Triple(Color.DarkGray, Color.Gray, "Canceled")
   }
 

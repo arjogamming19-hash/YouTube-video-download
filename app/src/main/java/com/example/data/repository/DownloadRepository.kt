@@ -108,7 +108,7 @@ class DownloadRepository(
 
         downloadDao.update(item.copy(status = DownloadStatus.FETCHING_INFO))
 
-        val parsed = YouTubeParser.fetchVideoDetails(okHttpClient, item.originalUrl, item.formatType)
+        val parsed = YouTubeParser.fetchVideoDetails(context, okHttpClient, item.originalUrl, item.formatType)
         val safeFileName = downloadManager.sanitizeFileName(parsed.title)
 
         item = item.copy(
@@ -127,6 +127,7 @@ class DownloadRepository(
         // Step 2: Download stream to local file storage
         downloadManager.downloadItem(
           item = item,
+          streamUrls = parsed.mirrorUrls,
           onProgressUpdate = { progress, downloadedBytes, totalBytes, speed ->
             downloadDao.update(
               item.copy(

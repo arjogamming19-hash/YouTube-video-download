@@ -75,11 +75,18 @@ class VideoDownloadManager(private val context: Context) {
 
   suspend fun downloadItem(
     item: DownloadItem,
+    streamUrls: List<String>,
     onProgressUpdate: suspend (progress: Float, downloadedBytes: Long, totalBytes: Long, speed: String) -> Unit,
     onComplete: suspend (filePath: String, totalBytes: Long) -> Unit,
     onError: suspend (errorMessage: String) -> Unit
   ) = withContext(Dispatchers.IO) {
     activeJobs[item.id] = true
+
+    if (streamUrls.isEmpty()) {
+      onError("Could not extract original YouTube stream. Video may be private or age-restricted.")
+      activeJobs.remove(item.id)
+      return@withContext
+    }
 
     val storageDir = getMediaStorageDir()
     val ext = if (item.formatType.contains("MP3")) "mp3" else if (item.formatType.contains("M4A")) "m4a" else "mp4"
@@ -93,13 +100,12 @@ class VideoDownloadManager(private val context: Context) {
     }
 
     try {
-      val parsedInfo = YouTubeParser.fetchVideoDetails(okHttpClient, item.originalUrl, item.formatType)
-      val urlsToTry = if (parsedInfo.mirrorUrls.isNotEmpty()) parsedInfo.mirrorUrls else listOf(parsedInfo.streamUrl)
+      val urlsToTry = streamUrls
 
       var successfulResponse: Response? = null
       var lastError: String = "Download stream unreachable"
 
-      // Attempt download from candidate mirror streams with browser headers
+      // Attempt download from candidate streams with YouTube browser headers
       for (candidateUrl in urlsToTry) {
         if (!coroutineContext.isActive || activeJobs[item.id] != true) {
           return@withContext
@@ -109,7 +115,9 @@ class VideoDownloadManager(private val context: Context) {
           val requestBuilder = Request.Builder()
             .url(candidateUrl)
             .header("User-Agent", USER_AGENT)
-            .header("Accept", "video/mp4,audio/mp4,audio/*,*/*;q=0.9")
+            .header("Referer", "https://www.youtube.com/")
+            .header("Origin", "https://www.youtube.com")
+            .header("Accept", "*/*")
             .header("Accept-Encoding", "identity")
 
           if (existingBytes > 0) {
@@ -142,7 +150,7 @@ class VideoDownloadManager(private val context: Context) {
       val response = successfulResponse
       val body = response.body ?: throw Exception("Empty response body")
       val contentLength = body.contentLength()
-      val totalBytes = if (contentLength > 0) existingBytes + contentLength else parsedInfo.estimatedSizeBytes
+      val totalBytes = if (contentLength > 0) existingBytes + contentLength else if (item.totalBytes > 0) item.totalBytes else 20L * 1024L * 1024L
 
       val inputStream: InputStream = body.byteStream()
       val outputStream = FileOutputStream(tempFile, existingBytes > 0)
