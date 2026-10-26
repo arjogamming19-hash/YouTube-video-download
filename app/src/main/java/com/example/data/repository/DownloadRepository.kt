@@ -117,6 +117,8 @@ class DownloadRepository(
           thumbnailUrl = parsed.thumbnailUrl,
           totalBytes = parsed.estimatedSizeBytes,
           fileName = safeFileName,
+          isOriginalStream = parsed.isOriginalYouTubeStream,
+          targetQuality = if (parsed.isOriginalYouTubeStream) parsed.qualityLabel else item.targetQuality,
           durationSeconds = parsed.durationSeconds,
           status = DownloadStatus.DOWNLOADING
         )

@@ -176,12 +176,32 @@ fun LocalStorageItemCard(
             overflow = TextOverflow.Ellipsis
           )
           Spacer(modifier = Modifier.height(2.dp))
-          Text(
-            text = "${VideoDownloadManager.formatBytes(item.fileSizeBytes)} • $dateFormatted",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontSize = 11.sp
-          )
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+          ) {
+            Text(
+              text = "${VideoDownloadManager.formatBytes(item.fileSizeBytes)} • $dateFormatted",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.primary,
+              fontSize = 11.sp
+            )
+
+            if (item.isOriginalStream) {
+              Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+              ) {
+                Text(
+                  text = "Original",
+                  color = MaterialTheme.colorScheme.primary,
+                  fontSize = 9.sp,
+                  fontWeight = FontWeight.Bold,
+                  modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                )
+              }
+            }
+          }
         }
 
         // Actions

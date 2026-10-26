@@ -16,6 +16,7 @@ data class DownloadItem(
   val thumbnailUrl: String = "",
   val formatType: String = "VIDEO_MP4",
   val targetQuality: String = "720p HD",
+  val isOriginalStream: Boolean = true,
   val status: DownloadStatus = DownloadStatus.QUEUED,
   val progress: Float = 0f,
   val downloadedBytes: Long = 0L,

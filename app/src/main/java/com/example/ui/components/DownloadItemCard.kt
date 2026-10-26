@@ -133,8 +133,28 @@ fun DownloadItemCard(
 
           Spacer(modifier = Modifier.height(4.dp))
 
-          // Status Badge
-          StatusPill(status = item.status, errorMessage = item.errorMessage)
+          // Status & Original Stream Badge
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+          ) {
+            StatusPill(status = item.status, errorMessage = item.errorMessage)
+
+            if (item.isOriginalStream) {
+              Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+              ) {
+                Text(
+                  text = "Original YT Stream",
+                  color = MaterialTheme.colorScheme.primary,
+                  fontSize = 9.sp,
+                  fontWeight = FontWeight.Bold,
+                  modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                )
+              }
+            }
+          }
         }
 
         // Action Buttons
