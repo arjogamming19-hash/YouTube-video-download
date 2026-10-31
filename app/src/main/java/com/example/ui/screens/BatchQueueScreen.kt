@@ -213,39 +213,14 @@ fun BatchQueueScreen(
               color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-              text = "Paste multiple YouTube URLs in the box above or load a quick demo batch to test multi-file downloading immediately.",
+              text = "Paste one or more YouTube video or Shorts URLs in the box above, choose your target format, and tap 'Add URLs to Start Batch'.",
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
               textAlign = TextAlign.Center
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedButton(
-              onClick = {
-                onLoadPresetBatch(
-                  listOf(
-                    "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
-                    "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
-                    "https://www.youtube.com/watch?v=9bZkp7q19f0"
-                  )
-                )
-              },
-              shape = RoundedCornerShape(10.dp),
-              modifier = Modifier.testTag("load_demo_batch_button")
-            ) {
-              Icon(
-                imageVector = Icons.Default.AutoAwesome,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary
-              )
-              Spacer(modifier = Modifier.width(6.dp))
-              Text("Load Demo Batch (3 Videos)", fontSize = 13.sp)
-            }
           }
         }
       }

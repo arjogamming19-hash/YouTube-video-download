@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,26 +16,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Landscape
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.MovieFilter
-import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -44,14 +45,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,15 +63,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
-data class BatchPreset(
-  val title: String,
-  val description: String,
-  val icon: ImageVector,
-  val gradientColors: List<Color>,
-  val urls: List<String>,
-  val formatNote: String
-)
-
 @Composable
 fun PresetsScreen(
   onDownloadPreset: (List<String>) -> Unit
@@ -82,71 +73,27 @@ fun PresetsScreen(
   var inspectedTitle by remember { mutableStateOf<String?>(null) }
   var inspectedChannel by remember { mutableStateOf<String?>(null) }
   var inspectedThumb by remember { mutableStateOf<String?>(null) }
+  var inspectedVideoId by remember { mutableStateOf<String?>(null) }
   var isInspecting by remember { mutableStateOf(false) }
+  var inspectError by remember { mutableStateOf<String?>(null) }
 
-  val presets = listOf(
-    BatchPreset(
-      title = "4K Nature & Wildlife Showcase",
-      description = "3 majestic landscape & wildlife documentary video streams in full 1080p/720p HD.",
-      icon = Icons.Default.Landscape,
-      gradientColors = listOf(Color(0xFF065F46), Color(0xFF047857)),
-      urls = listOf(
-        "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
-        "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
-        "https://www.youtube.com/watch?v=9bZkp7q19f0"
-      ),
-      formatNote = "3 Videos • ~68 MB estimated"
-    ),
-    BatchPreset(
-      title = "Lo-Fi Beats & Chillhop Bundle",
-      description = "Calming ambient study beats and relaxing instrumentals optimized for MP3 audio storage.",
-      icon = Icons.Default.Headphones,
-      gradientColors = listOf(Color(0xFF581C87), Color(0xFF7E22CE)),
-      urls = listOf(
-        "https://www.youtube.com/watch?v=jfKfPfyJRdk",
-        "https://www.youtube.com/watch?v=5qap5aO4i9A",
-        "https://www.youtube.com/watch?v=DWcJFNfaw9c"
-      ),
-      formatNote = "3 Audio Tracks • ~18 MB estimated"
-    ),
-    BatchPreset(
-      title = "Tech Innovation & Future Gadgets",
-      description = "High dynamic range tech hardware trailers and robotic engineering showcases.",
-      icon = Icons.Default.Memory,
-      gradientColors = listOf(Color(0xFF1E3A8A), Color(0xFF2563EB)),
-      urls = listOf(
-        "https://www.youtube.com/watch?v=3JZ_D3ELwOQ",
-        "https://www.youtube.com/watch?v=ysz5S6PUM-U",
-        "https://www.youtube.com/watch?v=jNQXAC9IVRw"
-      ),
-      formatNote = "3 Videos • ~52 MB estimated"
-    ),
-    BatchPreset(
-      title = "Shorts & Viral Highlights",
-      description = "Fast-paced short-form video clips designed for rapid batch downloading and offline replay.",
-      icon = Icons.Default.MovieFilter,
-      gradientColors = listOf(Color(0xFF831843), Color(0xFFBE185D)),
-      urls = listOf(
-        "https://www.youtube.com/shorts/aqz-KE-bpKQ",
-        "https://www.youtube.com/shorts/kJQP7kiw5Fk"
-      ),
-      formatNote = "2 Shorts • ~28 MB estimated"
-    )
-  )
+  // Batch URL cleaner input/output
+  var urlCleanerInput by remember { mutableStateOf("") }
+  var cleanedUrlOutput by remember { mutableStateOf<List<String>>(emptyList()) }
 
   LazyColumn(
     modifier = Modifier
       .fillMaxSize()
-      .testTag("presets_screen"),
+      .testTag("inspector_screen"),
     contentPadding = PaddingValues(16.dp),
     verticalArrangement = Arrangement.spacedBy(16.dp)
   ) {
-    // Screen Title
+    // 1. Header
     item {
       Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
           modifier = Modifier
-            .size(36.dp)
+            .size(38.dp)
             .clip(CircleShape)
             .background(
               Brush.linearGradient(
@@ -159,22 +106,22 @@ fun PresetsScreen(
           contentAlignment = Alignment.Center
         ) {
           Icon(
-            imageVector = Icons.Default.AutoAwesome,
+            imageVector = Icons.Default.TravelExplore,
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier.size(20.dp)
           )
         }
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Column {
           Text(
-            text = "Batch Presets & Tools",
+            text = "Link Inspector & Tools",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
           )
           Text(
-            text = "One-tap sample packs & link inspector",
+            text = "Preview YouTube videos, inspect streams & clean batch URLs",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
@@ -182,7 +129,7 @@ fun PresetsScreen(
       }
     }
 
-    // Link Inspector Tool Card
+    // 2. Link Inspector Tool Card
     item {
       Card(
         shape = RoundedCornerShape(16.dp),
@@ -200,7 +147,7 @@ fun PresetsScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-              text = "YouTube Link Inspector",
+              text = "Inspect YouTube Link",
               style = MaterialTheme.typography.titleMedium,
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onSurface
@@ -214,8 +161,9 @@ fun PresetsScreen(
             onValueChange = {
               inspectorUrl = it
               inspectedTitle = null
+              inspectError = null
             },
-            placeholder = { Text("Paste any YouTube URL to test...") },
+            placeholder = { Text("Paste any YouTube video or Shorts URL...") },
             singleLine = true,
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier
@@ -224,94 +172,164 @@ fun PresetsScreen(
             colors = OutlinedTextFieldDefaults.colors(
               focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
               unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-            )
+            ),
+            trailingIcon = {
+              OutlinedButton(
+                onClick = {
+                  try {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    val clip = clipboard?.primaryClip
+                    if (clip != null && clip.itemCount > 0) {
+                      val text = clip.getItemAt(0)?.text?.toString() ?: ""
+                      if (text.isNotBlank()) {
+                        inspectorUrl = text.trim()
+                        inspectedTitle = null
+                        inspectError = null
+                      }
+                    }
+                  } catch (_: Exception) {}
+                },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                modifier = Modifier.padding(end = 4.dp)
+              ) {
+                Icon(Icons.Default.ContentPaste, contentDescription = "Paste", modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Paste", fontSize = 11.sp)
+              }
+            }
           )
 
           Spacer(modifier = Modifier.height(10.dp))
 
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-          ) {
-            Button(
-              onClick = {
-                val videoId = YouTubeParser.extractVideoId(inspectorUrl)
-                if (videoId != null) {
-                  isInspecting = true
-                  scope.launch {
+          Button(
+            onClick = {
+              val videoId = YouTubeParser.extractVideoId(inspectorUrl)
+              if (videoId != null) {
+                isInspecting = true
+                inspectError = null
+                scope.launch {
+                  try {
                     val info = withContext(Dispatchers.IO) {
                       YouTubeParser.fetchVideoDetails(context, OkHttpClient(), inspectorUrl, "VIDEO_MP4")
                     }
                     inspectedTitle = info.title
                     inspectedChannel = info.channelTitle
                     inspectedThumb = info.thumbnailUrl
+                    inspectedVideoId = info.videoId
+                  } catch (e: Exception) {
+                    inspectError = "Could not fetch details. Check link or connection."
+                  } finally {
                     isInspecting = false
                   }
                 }
-              },
-              enabled = inspectorUrl.isNotBlank() && !isInspecting,
-              shape = RoundedCornerShape(8.dp),
-              modifier = Modifier
-                .weight(1f)
-                .testTag("inspect_link_button")
-            ) {
-              Text(if (isInspecting) "Inspecting..." else "Analyze Link")
-            }
-
-            if (inspectedTitle != null) {
-              Button(
-                onClick = {
-                  onDownloadPreset(listOf(inspectorUrl))
-                },
-                colors = ButtonDefaults.buttonColors(
-                  containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier
-                  .weight(1f)
-                  .testTag("download_inspected_button")
-              ) {
-                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Download")
+              } else {
+                inspectError = "Please enter a valid YouTube video or Shorts URL."
               }
+            },
+            enabled = inspectorUrl.isNotBlank() && !isInspecting,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier
+              .fillMaxWidth()
+              .testTag("inspect_link_button")
+          ) {
+            if (isInspecting) {
+              CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp
+              )
+              Spacer(modifier = Modifier.width(8.dp))
+              Text("Inspecting Video...")
+            } else {
+              Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+              Spacer(modifier = Modifier.width(8.dp))
+              Text("Inspect Video Details")
             }
           }
 
+          inspectError?.let { err ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+              text = err,
+              color = MaterialTheme.colorScheme.error,
+              style = MaterialTheme.typography.bodySmall
+            )
+          }
+
+          // Inspected result card
           if (inspectedTitle != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-              modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(8.dp),
-              verticalAlignment = Alignment.CenterVertically
+            Spacer(modifier = Modifier.height(14.dp))
+            Surface(
+              shape = RoundedCornerShape(12.dp),
+              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+              modifier = Modifier.fillMaxWidth()
             ) {
-              inspectedThumb?.let { thumb ->
-                AsyncImage(
-                  model = thumb,
-                  contentDescription = null,
-                  contentScale = ContentScale.Crop,
-                  modifier = Modifier
-                    .size(width = 64.dp, height = 44.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-              }
-              Column(modifier = Modifier.weight(1f)) {
-                Text(
-                  text = inspectedTitle ?: "",
-                  style = MaterialTheme.typography.bodySmall,
-                  fontWeight = FontWeight.Bold,
-                  maxLines = 1,
-                  color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                  text = inspectedChannel ?: "",
-                  style = MaterialTheme.typography.labelSmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+              Column(modifier = Modifier.padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  inspectedThumb?.let { thumb ->
+                    AsyncImage(
+                      model = thumb,
+                      contentDescription = null,
+                      contentScale = ContentScale.Crop,
+                      modifier = Modifier
+                        .size(width = 88.dp, height = 56.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                  }
+                  Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                      text = inspectedTitle ?: "",
+                      style = MaterialTheme.typography.bodyMedium,
+                      fontWeight = FontWeight.Bold,
+                      maxLines = 2,
+                      color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                      text = "${inspectedChannel ?: "YouTube Creator"} • ID: ${inspectedVideoId ?: ""}",
+                      style = MaterialTheme.typography.labelSmall,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                  }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                  Button(
+                    onClick = {
+                      onDownloadPreset(listOf(inspectorUrl))
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                      containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.weight(1f)
+                  ) {
+                    Icon(Icons.Default.Movie, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Download MP4", fontSize = 12.sp)
+                  }
+
+                  Button(
+                    onClick = {
+                      onDownloadPreset(listOf(inspectorUrl))
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                      containerColor = MaterialTheme.colorScheme.secondary
+                    ),
+                    modifier = Modifier.weight(1f)
+                  ) {
+                    Icon(Icons.Default.Audiotrack, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Download MP3", fontSize = 12.sp)
+                  }
+                }
               }
             }
           }
@@ -319,100 +337,113 @@ fun PresetsScreen(
       }
     }
 
-    // Section Header
+    // 3. Batch URL Cleaner & Formatter Card
     item {
-      Text(
-        text = "Curated Batch Demo Packs",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface
-      )
-    }
-
-    // Preset cards
-    items(presets) { preset ->
       Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
-          .fillMaxWidth()
-          .testTag("preset_card_${preset.title.take(10).replace(" ", "_")}")
+        modifier = Modifier.fillMaxWidth()
       ) {
         Column(modifier = Modifier.padding(16.dp)) {
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-              Box(
-                modifier = Modifier
-                  .size(40.dp)
-                  .clip(RoundedCornerShape(10.dp))
-                  .background(Brush.linearGradient(preset.gradientColors)),
-                contentAlignment = Alignment.Center
-              ) {
-                Icon(
-                  imageVector = preset.icon,
-                  contentDescription = null,
-                  tint = Color.White,
-                  modifier = Modifier.size(22.dp)
-                )
-              }
-
-              Spacer(modifier = Modifier.width(12.dp))
-
-              Column {
-                Text(
-                  text = preset.title,
-                  style = MaterialTheme.typography.titleSmall,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                  text = preset.formatNote,
-                  style = MaterialTheme.typography.labelSmall,
-                  color = MaterialTheme.colorScheme.primary,
-                  fontWeight = FontWeight.SemiBold
-                )
-              }
-            }
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+              imageVector = Icons.Default.CleaningServices,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.secondary,
+              modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+              text = "Batch URL Cleaner & Formatter",
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurface
+            )
           }
 
-          Spacer(modifier = Modifier.height(8.dp))
+          Spacer(modifier = Modifier.height(4.dp))
 
           Text(
-            text = preset.description,
+            text = "Paste text with raw links to remove share tracking (?si=..., &feature=...), convert Shorts to standard links, and validate URLs for batch queueing.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
 
-          Spacer(modifier = Modifier.height(14.dp))
+          Spacer(modifier = Modifier.height(10.dp))
 
-          Button(
-            onClick = { onDownloadPreset(preset.urls) },
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(44.dp),
+          OutlinedTextField(
+            value = urlCleanerInput,
+            onValueChange = {
+              urlCleanerInput = it
+              cleanedUrlOutput = YouTubeParser.extractBatchUrls(it)
+            },
+            placeholder = { Text("Paste messy links, messages, or text containing YouTube URLs...") },
+            minLines = 3,
+            maxLines = 6,
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.primary
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+              unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
             )
-          ) {
-            Icon(
-              imageVector = Icons.Default.CloudDownload,
-              contentDescription = null,
-              modifier = Modifier.size(18.dp)
+          )
+
+          Spacer(modifier = Modifier.height(10.dp))
+
+          if (cleanedUrlOutput.isNotEmpty()) {
+            Text(
+              text = "Found ${cleanedUrlOutput.size} valid YouTube URL${if (cleanedUrlOutput.size != 1) "s" else ""}:",
+              style = MaterialTheme.typography.labelMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Download This Batch (${preset.urls.size} items)", fontWeight = FontWeight.Bold)
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Surface(
+              shape = RoundedCornerShape(8.dp),
+              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+              modifier = Modifier.fillMaxWidth()
+            ) {
+              Column(modifier = Modifier.padding(8.dp)) {
+                cleanedUrlOutput.take(5).forEach { u ->
+                  Text(
+                    text = "• $u",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                  )
+                }
+                if (cleanedUrlOutput.size > 5) {
+                  Text(
+                    text = "+ ${cleanedUrlOutput.size - 5} more links...",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                  )
+                }
+              }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+              onClick = {
+                onDownloadPreset(cleanedUrlOutput)
+              },
+              shape = RoundedCornerShape(10.dp),
+              modifier = Modifier.fillMaxWidth()
+            ) {
+              Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+              Spacer(modifier = Modifier.width(6.dp))
+              Text("Send ${cleanedUrlOutput.size} Clean URLs to Download Queue")
+            }
           }
         }
       }
     }
 
-    // Info card about Local File Storage
+    // 4. Info card about Local File Storage
     item {
       Surface(
         shape = RoundedCornerShape(12.dp),
@@ -432,14 +463,14 @@ fun PresetsScreen(
           Spacer(modifier = Modifier.width(10.dp))
           Column {
             Text(
-              text = "About Local File Storage",
+              text = "Offline Local Media Storage",
               style = MaterialTheme.typography.labelLarge,
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-              text = "All downloaded videos and MP3 audio files are stored in your device's persistent app media storage (`Movies/TubeBatch`). They remain playable offline without consuming cellular data and can be shared to any external app.",
+              text = "All downloaded videos and audio tracks are saved to device media storage (`Movies/TubeBatch`). They remain playable offline anytime with the built-in player and can be exported or shared via Android's native share sheet.",
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )

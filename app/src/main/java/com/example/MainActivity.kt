@@ -19,10 +19,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -254,23 +254,23 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.testTag("tab_storage")
               )
 
-              // 3. Presets & Tools Tab
+              // 3. Link Tools Tab
               NavigationBarItem(
                 selected = currentTab == NavigationTab.PRESETS,
                 onClick = { viewModel.setTab(NavigationTab.PRESETS) },
                 icon = {
                   Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "Presets & Tools"
+                    imageVector = Icons.Default.TravelExplore,
+                    contentDescription = "Link Tools"
                   )
                 },
-                label = { Text("Demo Packs") },
+                label = { Text("Link Tools") },
                 colors = NavigationBarItemDefaults.colors(
                   indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                   selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                   selectedTextColor = MaterialTheme.colorScheme.primary
                 ),
-                modifier = Modifier.testTag("tab_presets")
+                modifier = Modifier.testTag("tab_tools")
               )
             }
           }

@@ -37,20 +37,6 @@ object YouTubeParser {
     "https://invidious.drgns.space/api/v1/videos/"
   )
 
-  // Verified demo pack streams used ONLY for the curated sample demo presets
-  val DEMO_PRESET_VIDEO_STREAMS = listOf(
-    "https://samplelib.com/lib/preview/mp4/sample-20s.mp4",
-    "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_10MB.mp4",
-    "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4",
-    "https://samplelib.com/lib/preview/mp4/sample-10s.mp4"
-  )
-
-  val DEMO_PRESET_AUDIO_STREAMS = listOf(
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    "https://samplelib.com/lib/preview/mp3/sample-15s.mp3",
-    "https://samplelib.com/lib/preview/mp3/sample-9s.mp3"
-  )
-
   fun extractVideoId(text: String): String? {
     val trimmed = text.trim()
     val matcher = YOUTUBE_REGEX.matcher(trimmed)
@@ -81,7 +67,7 @@ object YouTubeParser {
   }
 
   /**
-   * Fast, reliable direct YouTube MP4/MP3 stream resolver for any YouTube video or short.
+   * Fast, reliable direct YouTube MP4/MP3 stream resolver for real YouTube videos and shorts.
    */
   private suspend fun resolveDirectYouTubeStream(
     client: OkHttpClient,
@@ -154,9 +140,7 @@ object YouTubeParser {
     var duration = 180
     var isOriginalStream = false
     var extractedQuality = "720p HD"
-    val originalCandidateUrls = mutableListOf<String>()
-
-    val isPresetDemo = url.contains("demo_sample")
+    val candidateUrls = mutableListOf<String>()
 
     // 1. Fetch real video metadata via oEmbed
     try {
@@ -180,92 +164,82 @@ object YouTubeParser {
       resp.close()
     } catch (_: Exception) {}
 
-    // 2. If it's a real user YouTube video / short:
-    if (!isPresetDemo) {
-      val isAudio = formatType.startsWith("AUDIO")
+    val isAudio = formatType.startsWith("AUDIO")
 
-      // Step A: Fast high-speed direct YouTube resolver
-      val directResult = resolveDirectYouTubeStream(client, videoId, isAudio)
-      if (directResult != null) {
-        originalCandidateUrls.add(directResult.first)
-        isOriginalStream = true
-        if (directResult.second != null && title.startsWith("YouTube Video (")) {
-          title = directResult.second!!
-        }
-      }
-
-      // Step B: Invidious / Piped API resolver
-      if (originalCandidateUrls.isEmpty()) {
-        for (apiBase in STREAM_RESOLVER_APIS) {
-          try {
-            val req = Request.Builder()
-              .url("$apiBase$videoId")
-              .header("User-Agent", VideoDownloadManager.USER_AGENT)
-              .header("Accept", "application/json")
-              .build()
-
-            val resp = client.newCall(req).execute()
-            if (resp.isSuccessful) {
-              val bodyStr = resp.body?.string()
-              if (!bodyStr.isNullOrBlank()) {
-                val json = JSONObject(bodyStr)
-                if (title.startsWith("YouTube Video (")) {
-                  title = json.optString("title", title)
-                  channel = json.optString("author", channel)
-                }
-                duration = json.optInt("lengthSeconds", duration)
-
-                if (isAudio) {
-                  val adaptive = json.optJSONArray("adaptiveFormats")
-                  if (adaptive != null) {
-                    for (i in 0 until adaptive.length()) {
-                      val item = adaptive.getJSONObject(i)
-                      val type = item.optString("type", "")
-                      val sUrl = item.optString("url", "")
-                      if (type.contains("audio") && sUrl.isNotBlank()) {
-                        originalCandidateUrls.add(sUrl)
-                        isOriginalStream = true
-                      }
-                    }
-                  }
-                } else {
-                  val formatStreams = json.optJSONArray("formatStreams")
-                  if (formatStreams != null) {
-                    for (i in 0 until formatStreams.length()) {
-                      val item = formatStreams.getJSONObject(i)
-                      val sUrl = item.optString("url", "")
-                      val quality = item.optString("qualityLabel", item.optString("quality", "720p"))
-                      if (sUrl.isNotBlank()) {
-                        originalCandidateUrls.add(sUrl)
-                        isOriginalStream = true
-                        extractedQuality = quality
-                      }
-                    }
-                  }
-                }
-
-                if (originalCandidateUrls.isNotEmpty()) {
-                  resp.close()
-                  break
-                }
-              }
-            }
-            resp.close()
-          } catch (_: Exception) {}
-        }
-      }
-    } else {
-      // Demo preset
-      if (formatType.startsWith("AUDIO")) {
-        originalCandidateUrls.addAll(DEMO_PRESET_AUDIO_STREAMS)
-      } else {
-        originalCandidateUrls.addAll(DEMO_PRESET_VIDEO_STREAMS)
+    // 2. Step A: Fast high-speed direct YouTube resolver
+    val directResult = resolveDirectYouTubeStream(client, videoId, isAudio)
+    if (directResult != null) {
+      candidateUrls.add(directResult.first)
+      isOriginalStream = true
+      if (directResult.second != null && title.startsWith("YouTube Video (")) {
+        title = directResult.second!!
       }
     }
 
-    val finalMirrors = originalCandidateUrls.distinct()
+    // 3. Step B: Invidious / Piped API resolver fallback
+    if (candidateUrls.isEmpty()) {
+      for (apiBase in STREAM_RESOLVER_APIS) {
+        try {
+          val req = Request.Builder()
+            .url("$apiBase$videoId")
+            .header("User-Agent", VideoDownloadManager.USER_AGENT)
+            .header("Accept", "application/json")
+            .build()
 
-    val estimatedBytes = if (formatType.startsWith("AUDIO")) {
+          val resp = client.newCall(req).execute()
+          if (resp.isSuccessful) {
+            val bodyStr = resp.body?.string()
+            if (!bodyStr.isNullOrBlank()) {
+              val json = JSONObject(bodyStr)
+              if (title.startsWith("YouTube Video (")) {
+                title = json.optString("title", title)
+                channel = json.optString("author", channel)
+              }
+              duration = json.optInt("lengthSeconds", duration)
+
+              if (isAudio) {
+                val adaptive = json.optJSONArray("adaptiveFormats")
+                if (adaptive != null) {
+                  for (i in 0 until adaptive.length()) {
+                    val item = adaptive.getJSONObject(i)
+                    val type = item.optString("type", "")
+                    val sUrl = item.optString("url", "")
+                    if (type.contains("audio") && sUrl.isNotBlank()) {
+                      candidateUrls.add(sUrl)
+                      isOriginalStream = true
+                    }
+                  }
+                }
+              } else {
+                val formatStreams = json.optJSONArray("formatStreams")
+                if (formatStreams != null) {
+                  for (i in 0 until formatStreams.length()) {
+                    val item = formatStreams.getJSONObject(i)
+                    val sUrl = item.optString("url", "")
+                    val quality = item.optString("qualityLabel", item.optString("quality", "720p"))
+                    if (sUrl.isNotBlank()) {
+                      candidateUrls.add(sUrl)
+                      isOriginalStream = true
+                      extractedQuality = quality
+                    }
+                  }
+                }
+              }
+
+              if (candidateUrls.isNotEmpty()) {
+                resp.close()
+                break
+              }
+            }
+          }
+          resp.close()
+        } catch (_: Exception) {}
+      }
+    }
+
+    val finalMirrors = candidateUrls.distinct()
+
+    val estimatedBytes = if (isAudio) {
       (4L + (Math.abs(videoId.hashCode()) % 8)) * 1024L * 1024L
     } else {
       (15L + (Math.abs(videoId.hashCode()) % 35)) * 1024L * 1024L
